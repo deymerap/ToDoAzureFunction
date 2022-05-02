@@ -1,4 +1,5 @@
-﻿using Microsoft.WindowsAzure.Storage.Table;
+﻿using Microsoft.Azure.Cosmos.Table;
+//using Microsoft.WindowsAzure.Storage.Table;
 using System;
 
 namespace ToDoAzureFunction.Function.Entities

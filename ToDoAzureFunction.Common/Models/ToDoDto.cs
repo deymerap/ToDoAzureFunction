@@ -1,6 +1,6 @@
 ﻿namespace ToDoAzureFunction.Common.Models
 {
-    public class ToDo
+    public class ToDoDto
     {
         public DateTime CreatedTime { get; set; }
         public string? TaskDescription { get; set; }
