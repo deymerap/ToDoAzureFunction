@@ -17,6 +17,65 @@ namespace ToDoAzureFunction.Function.Func
 {
     public static class TodoApi
     {
+        [FunctionName(nameof(GetAllToDo))]
+        public static async Task<IActionResult> GetAllToDo(
+        [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "ToDo")] HttpRequest pvObReq,
+        [Table("ToDoTable", Connection = "AzureWebJobsStorage")] CloudTable todoTable,
+        ILogger log)
+        {
+            log.LogInformation("Get all ToDo recieved.");
+
+            TableQuery<ToDoEntity> query = new TableQuery<ToDoEntity>();
+            TableQuerySegment<ToDoEntity> vLstToDoEntity = await todoTable.ExecuteQuerySegmentedAsync(query, null);
+
+            string message = "List all ToDo.";
+            log.LogInformation(message);
+
+            return new OkObjectResult(new Response
+            {
+                isSuccess = true,
+                Message = message,
+                Result = vLstToDoEntity
+            });
+        }
+
+
+        [FunctionName(nameof(GetToDoById))]
+        public static async Task<IActionResult> GetToDoById(
+        [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "ToDo/{id}")] HttpRequest pvObReq,
+        [Table("ToDoTable", Connection = "AzureWebJobsStorage")] CloudTable todoTable,
+        string id,
+        ILogger log)
+        {
+            log.LogInformation($"Get ToDo with:{id}");
+
+            //Validate ToDo id
+            TableOperation vObToUpdateOperation = TableOperation.Retrieve<ToDoEntity>("ToDoTable", id);
+            TableResult tableResult = await todoTable.ExecuteAsync(vObToUpdateOperation);
+            if (tableResult == null)
+            {
+                return new BadRequestObjectResult(new Response()
+                {
+                    isSuccess = false,
+                    Message = "ToDo not found.",
+                });
+            }
+
+            string message = "List ToDo.";
+            log.LogInformation(message);
+
+            ToDoEntity vObToDoEntity = (ToDoEntity)tableResult.Result;
+
+            return new OkObjectResult(new Response
+            {
+                isSuccess = true,
+                Message = message,
+                Result = vObToDoEntity
+            });
+        }
+
+
+
         [FunctionName(nameof(CreateToDo))]
         public static async Task<IActionResult> CreateToDo(
             [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "ToDo")] HttpRequest pvObReq,
@@ -109,6 +168,8 @@ namespace ToDoAzureFunction.Function.Func
                 Result = vObToDoEntity
             });
         }
+
+
 
 
     }
