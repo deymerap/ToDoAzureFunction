@@ -20,14 +20,10 @@ namespace ToDoAzureFunction.Function.Func
         [FunctionName(nameof(CreateToDo))]
         public static async Task<IActionResult> CreateToDo(
             [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "ToDo")] HttpRequest pvObReq,
-            [Table("ToDo", Connection = "AzureWebJobsStorage")] CloudTable todoTable,
-
+            [Table("ToDoTable", Connection = "AzureWebJobsStorage")] CloudTable todoTable,
             ILogger log)
         {
             log.LogInformation("Recieved a new ToDo");
-
-            string name = pvObReq.Query["name"];
-
             string requestBody = await new StreamReader(pvObReq.Body).ReadToEndAsync();
             var data = JsonConvert.DeserializeObject<ToDoDto>(requestBody);
 
@@ -62,7 +58,58 @@ namespace ToDoAzureFunction.Function.Func
         }
 
 
-       
+        [FunctionName(nameof(UpdateToDo))]
+        public static async Task<IActionResult> UpdateToDo(
+            [HttpTrigger(AuthorizationLevel.Anonymous, "put", Route = "ToDo/{id}")] HttpRequest pvObReq,
+            [Table("ToDoTable", Connection = "AzureWebJobsStorage")] CloudTable todoTable,
+            string id,
+            ILogger log)
+        {
+            log.LogInformation($"Update for ToDo:{id}, recieved");
+
+            string requestBody = await new StreamReader(pvObReq.Body).ReadToEndAsync();
+            var data = JsonConvert.DeserializeObject<ToDoDto>(requestBody);
+
+            //Validate ToDo id
+            TableOperation vObToUpdateOperation = TableOperation.Retrieve<ToDoEntity>("ToDoTable", id);
+            TableResult tableResult = await todoTable.ExecuteAsync(vObToUpdateOperation);
+            if (tableResult == null)
+            {
+                return new BadRequestObjectResult(new Response()
+                {
+                    isSuccess = false,
+                    Message = "ToDo not found.",
+                });
+            }
+
+            if (String.IsNullOrEmpty(data?.TaskDescription))
+            {
+                return new BadRequestObjectResult(new Response()
+                {
+                    isSuccess = false,
+                    Message = "The request must have a TaskDescription.",
+                });
+            }
+
+            //Update ToDo
+            ToDoEntity vObToDoEntity = (ToDoEntity)tableResult.Result;
+            vObToDoEntity.IsCompleted = data.IsCompleted; //Act state 
+            vObToDoEntity.TaskDescription = data.TaskDescription;
+
+            TableOperation vObAddOperation = TableOperation.Replace(vObToDoEntity);
+            await todoTable.ExecuteAsync(vObAddOperation);
+
+            string message = $"ToDo: {id}, update in Table";
+            log.LogInformation(message);
+
+            return new OkObjectResult(new Response
+            {
+                isSuccess = true,
+                Message = message,
+                Result = vObToDoEntity
+            });
+        }
+
 
     }
 }
