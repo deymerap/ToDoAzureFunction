@@ -169,7 +169,38 @@ namespace ToDoAzureFunction.Function.Func
             });
         }
 
+        [FunctionName(nameof(DeleteToDo))]
+        public static async Task<IActionResult> DeleteToDo(
+            [HttpTrigger(AuthorizationLevel.Anonymous, "delete", Route = "ToDo/{id}")] HttpRequest pvObReq,
+            [Table("ToDoTable", Connection = "AzureWebJobsStorage")] CloudTable todoTable,
+            [Table("ToDoTable", "ToDoTable","{id}", Connection = "AzureWebJobsStorage")] ToDoEntity vObToDoEntity,
+            string id,
+            ILogger log)
+        {
+            log.LogInformation($"Delete for ToDo:{id}, recieved");
 
+            if (vObToDoEntity == null)
+            {
+                return new BadRequestObjectResult(new Response()
+                {
+                    isSuccess = false,
+                    Message = "ToDo not found.",
+                });
+            }
+
+            TableOperation vObAddOperation = TableOperation.Delete(vObToDoEntity);
+            await todoTable.ExecuteAsync(vObAddOperation);
+
+            string message = $"The ToDo: {id}, was deleted";
+            log.LogInformation(message);
+
+            return new OkObjectResult(new Response
+            {
+                isSuccess = true,
+                Message = message,
+                Result = vObToDoEntity
+            });
+        }
 
 
     }
